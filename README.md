@@ -1,10 +1,16 @@
 # LinkedIn Post Generator Automation (TechFix Pro)
 
+ codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
 This repository includes three Firebase Cloud Function workflows:
 
 1. **`generateLinkedInPost`**: Generates a constrained LinkedIn post draft (hook, body, hashtags) and stores it in Firestore with `draft` status.
 2. **`approveLinkedInPost`**: Human approval endpoint that marks a post as approved and scheduled.
 3. **`publishScheduledLinkedInPosts` + `postInLinkedInNow`**: Automatic scheduled publishing and a manual “post now” endpoint.
+This repository now includes two Firebase Cloud Function workflows:
+
+1. **`generateLinkedInPost`**: Generates a constrained LinkedIn post draft (hook, body, hashtags) and stores it in Firestore with `draft` status.
+2. **`approveLinkedInPost` + `publishScheduledLinkedInPosts`**: Human approval endpoint and scheduled publisher that auto-posts approved content to LinkedIn.
+ main
 
 ## Firestore Collection
 
@@ -69,6 +75,7 @@ firebase deploy --only functions
 }
 ```
 
+codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
 ### 3) Post in LinkedIn Now
 `POST /postInLinkedInNow`
 
@@ -79,7 +86,7 @@ firebase deploy --only functions
 ```
 
 > `postInLinkedInNow` requires the post to already be approved.
-
+ main
 ## Publishing Behavior
 
 The scheduled function runs every 15 minutes and publishes posts where:

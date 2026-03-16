@@ -1,13 +1,10 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const axios = require('axios');
-
 admin.initializeApp();
 const db = admin.firestore();
-
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const LINKEDIN_UGC_URL = 'https://api.linkedin.com/v2/ugcPosts';
-
 function buildPrompt({ serviceName, audience, tone, cta }) {
   return `Generate a LinkedIn ad post for a professional laptop repair service named "${serviceName}".\n\nAudience: ${audience}.\nTone: ${tone}.\nMust include:\n1) Pain-point hook in first line\n2) 3–4 short, punchy service benefits\n3) Strong CTA\n4) 5–7 relevant hashtags\n5) Under 200 words\n6) Minimal emojis (only where useful)\n\nKey benefits to include:\n- Same-day or 24-hour turnaround\n- Expert certified technicians\n- Affordable pricing\n\nCTA target: ${cta}\n\nReturn strict JSON with fields:\n{\"hook\": string, \"post_body\": string, \"hashtags\": string[], \"total_words\": number}`;
 }
@@ -18,7 +15,7 @@ function parseModelJSON(raw) {
   if (!jsonMatch) throw new Error('No JSON object returned by model');
   return JSON.parse(jsonMatch[0]);
 }
-
+ codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
 function parseTimestamp(value, fieldName) {
   if (value === null || value === undefined || value === '') return null;
   const date = new Date(value);
@@ -27,14 +24,18 @@ function parseTimestamp(value, fieldName) {
   }
   return admin.firestore.Timestamp.fromDate(date);
 }
-
+main
 function validatePostPayload(payload) {
   if (!payload.hook || !payload.post_body || !Array.isArray(payload.hashtags)) {
     throw new Error('Model output missing required fields');
   }
 
+ codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
   const wordCount =
     Number(payload.total_words) || `${payload.hook}\n${payload.post_body}`.trim().split(/\s+/).length;
+
+  const wordCount = Number(payload.total_words) || `${payload.hook}\n${payload.post_body}`.trim().split(/\s+/).length;
+ main
   if (wordCount > 200) {
     throw new Error(`Post exceeds 200 words (${wordCount})`);
   }
@@ -51,10 +52,11 @@ function validatePostPayload(payload) {
   };
 }
 
+ codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
 function buildFinalText(post) {
   return `${post.hook}\n\n${post.generated_post}\n\n${(post.hashtags || []).join(' ')}`;
 }
-
+ main
 async function generatePostWithLLM(input) {
   const openAiKey = functions.config().openai?.key;
   if (!openAiKey) {
@@ -90,6 +92,7 @@ async function generatePostWithLLM(input) {
   return validatePostPayload(parseModelJSON(raw));
 }
 
+codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
 async function publishToLinkedIn({ personUrn, accessToken, text }) {
   const payload = {
     author: personUrn,
@@ -149,6 +152,7 @@ async function publishPostDocument(postRef, postData) {
   return postUrn;
 }
 
+main
 exports.generateLinkedInPost = functions.https.onRequest(async (req, res) => {
   try {
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
@@ -158,7 +162,10 @@ exports.generateLinkedInPost = functions.https.onRequest(async (req, res) => {
       req.body.audience || 'busy professionals, remote workers, and small business owners';
     const tone = req.body.tone || 'confident, professional, trustworthy';
     const cta = req.body.cta || 'Send us a message now to book priority service.';
+codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
     const scheduledTimestamp = parseTimestamp(req.body.scheduledTime, 'scheduledTime');
+    const scheduledTime = req.body.scheduledTime || null;
+ main
 
     const generated = await generatePostWithLLM({ serviceName, audience, tone, cta });
 
@@ -177,7 +184,11 @@ exports.generateLinkedInPost = functions.https.onRequest(async (req, res) => {
         approved_by: null,
         approved_at: null,
       },
+codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
       scheduled_time: scheduledTimestamp,
+
+      scheduled_time: scheduledTime ? admin.firestore.Timestamp.fromDate(new Date(scheduledTime)) : null,
+ main
       created_at: admin.firestore.FieldValue.serverTimestamp(),
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
       published_at: null,
@@ -187,7 +198,11 @@ exports.generateLinkedInPost = functions.https.onRequest(async (req, res) => {
 
     return res.status(200).json({ id: doc.id, ...generated, status: 'draft' });
   } catch (error) {
+codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
     console.error('generateLinkedInPost error:', error.message);
+
+    console.error('generateLinkedInPost error:', error);
+ main
     return res.status(500).json({ error: error.message });
   }
 });
@@ -205,8 +220,14 @@ exports.approveLinkedInPost = functions.https.onRequest(async (req, res) => {
     const snap = await ref.get();
     if (!snap.exists) return res.status(404).json({ error: 'Post not found' });
 
+ codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
     const scheduleTimestamp =
       parseTimestamp(scheduledTime, 'scheduledTime') || snap.data().scheduled_time || null;
+
+    const scheduleTimestamp = scheduledTime
+      ? admin.firestore.Timestamp.fromDate(new Date(scheduledTime))
+      : snap.data().scheduled_time;
+ main
 
     await ref.update({
       status: 'scheduled',
@@ -222,11 +243,16 @@ exports.approveLinkedInPost = functions.https.onRequest(async (req, res) => {
 
     return res.status(200).json({ postId, status: 'scheduled' });
   } catch (error) {
+ codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
     console.error('approveLinkedInPost error:', error.message);
+
+    console.error('approveLinkedInPost error:', error);
+ main
     return res.status(500).json({ error: error.message });
   }
 });
 
+ codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
 exports.postInLinkedInNow = functions.https.onRequest(async (req, res) => {
   try {
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
@@ -248,10 +274,51 @@ exports.postInLinkedInNow = functions.https.onRequest(async (req, res) => {
   }
 });
 
+async function publishToLinkedIn({ personUrn, accessToken, text }) {
+  const payload = {
+    author: personUrn,
+    lifecycleState: 'PUBLISHED',
+    specificContent: {
+      'com.linkedin.ugc.ShareContent': {
+        shareCommentary: {
+          text,
+        },
+        shareMediaCategory: 'NONE',
+      },
+    },
+    visibility: {
+      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+    },
+  };
+
+  const response = await axios.post(LINKEDIN_UGC_URL, payload, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'X-Restli-Protocol-Version': '2.0.0',
+      'Content-Type': 'application/json',
+    },
+    timeout: 30000,
+  });
+
+  return response.headers['x-restli-id'] || null;
+}
+ main
+
 exports.publishScheduledLinkedInPosts = functions.pubsub
   .schedule('every 15 minutes')
   .timeZone('UTC')
   .onRun(async () => {
+ codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
+
+    const linkedinToken = functions.config().linkedin?.token;
+    const linkedinPersonUrn = functions.config().linkedin?.person_urn;
+
+    if (!linkedinToken || !linkedinPersonUrn) {
+      console.error('Missing Firebase config: linkedin.token or linkedin.person_urn');
+      return null;
+    }
+
+ main
     const now = admin.firestore.Timestamp.now();
     const snapshot = await db
       .collection('posts')
@@ -266,8 +333,28 @@ exports.publishScheduledLinkedInPosts = functions.pubsub
     }
 
     const promises = snapshot.docs.map(async (doc) => {
+ codex/create-linkedin-post-automation-for-techfix-pro-m1asr7
       try {
         await publishPostDocument(doc.ref, doc.data());
+
+      const data = doc.data();
+      const finalText = `${data.hook}\n\n${data.generated_post}\n\n${(data.hashtags || []).join(' ')}`;
+
+      try {
+        const postUrn = await publishToLinkedIn({
+          personUrn: linkedinPersonUrn,
+          accessToken: linkedinToken,
+          text: finalText,
+        });
+
+        await doc.ref.update({
+          status: 'published',
+          published_at: admin.firestore.FieldValue.serverTimestamp(),
+          linkedin_post_urn: postUrn,
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+          error: null,
+        });
+ main
       } catch (error) {
         console.error(`LinkedIn publish failed for ${doc.id}:`, error.message);
         await doc.ref.update({
